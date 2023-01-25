@@ -310,6 +310,9 @@ footer{
         height:44vh
     }
 }
-submit{
+#Submit{
+    color: red;
+}
+#Reset{
     color: red;
 }
