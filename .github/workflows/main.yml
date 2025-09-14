@@ -1,0 +1,52 @@
+name: BrowserStack Automation
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+jobs:
+  browserstack-tests:
+    runs-on: ubuntu-latest
+
+    steps:
+      # 1. Checkout your code
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # 2. Install required tools (Java + Node example)
+      - name: Setup environment
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      # 3. Install dependencies
+      - name: Install dependencies
+        run: npm ci
+
+      # 4. Upload app to BrowserStack (for App Automate)
+      - name: Upload app to BrowserStack
+        id: upload
+        run: |
+          RESPONSE=$(curl -u "${{ secrets.BROWSERSTACK_USERNAME }}:${{ secrets.BROWSERSTACK_ACCESS_KEY }}" \
+            -X POST "https://api-cloud.browserstack.com/app-automate/upload" \
+            -F "file=@path/to/your/app.apk")
+          echo "response=$RESPONSE" >> $GITHUB_OUTPUT
+
+      # 5. Run tests on BrowserStack
+      - name: Run BrowserStack tests
+        run: |
+          APP_URL=$(echo "${{ steps.upload.outputs.response }}" | jq -r '.app_url')
+          npx wdio run wdio.conf.js --baseUrl "$APP_URL"
+
+      # 6. (Optional) Archive test reports
+      - name: Upload test report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: browserstack-report
+          path: reports/
